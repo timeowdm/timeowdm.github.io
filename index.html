@@ -69,6 +69,8 @@
       var d = rows && rows[0] && rows[0].data;
       if (!d || !d.name) return fail('Cette page n’est pas en ligne.');
       document.title = d.name + ' · NextLap';
+      // Une visite de plus (le compteur ne compte que les pages publiées).
+      fetch(URL_BASE + '/rest/v1/rpc/count_page_view', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ page_slug: slug }) }).catch(function () {});
       var html = '<header>' + (d.number ? '<div class="num">' + esc(d.number) + '</div>' : '') +
         '<div class="kick">PILOTE' + (d.season ? ' · SAISON ' + esc(d.season) : '') + '</div>' +
         '<h1>' + esc(d.name) + '</h1>' + (d.identity ? '<div class="id">' + esc(d.identity) + '</div>' : '') +
