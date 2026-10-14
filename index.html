@@ -60,6 +60,23 @@
   function section(title, body) { return body ? '<section><h2>' + title + '</h2>' + body + '</section>' : ''; }
   function fail(text) { app.innerHTML = '<div class="empty">' + text + '</div>'; }
 
+  // Suivi parent ou coach : ?s=<lien privé>, lu par une fonction serveur qui ne rend que ce résumé.
+  var follow = (new URLSearchParams(location.search).get('s') || '').replace(/[^a-z0-9]/g, '');
+  if (follow) {
+    fetch(URL_BASE + '/rest/v1/rpc/get_follow', { method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ follow_token: follow }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.name) return fail('Ce lien de suivi n’est plus actif.');
+        document.title = 'Suivi · ' + d.name;
+        app.innerHTML = '<header><div class="kick">SUIVI PRIVÉ</div><h1>' + esc(d.name) + '</h1>' + (d.discipline ? '<div class="id">' + esc(d.discipline) + '</div>' : '') +
+          '<div class="stats"><div><b>' + esc(d.activeDays30) + '</b><span>JOURS ACTIFS SUR 30</span></div><div><b>' + esc(d.habits) + '</b><span>HABITUDES SUIVIES</span></div><div><b>' + esc((d.sessions || []).length) + '</b><span>SESSIONS RÉCENTES</span></div></div></header>' +
+          section('Records', (d.records || []).map(function (r) { return '<div class="row"><b>' + esc(r.circuit) + '</b><em>' + esc(r.chrono) + '</em></div>'; }).join('')) +
+          section('Dernières sessions', (d.sessions || []).map(function (s) { return '<div class="row"><span>' + esc(s.date) + '</span><b>' + esc(s.circuit) + '</b><em>' + esc(s.detail) + '</em></div>'; }).join('')) +
+          '<footer><b>NEXTLAP</b><span>Lien privé, en lecture seule</span></footer>';
+      })
+      .catch(function () { fail('Le suivi n’a pas pu être chargé.'); });
+    return;
+  }
   var slug = (new URLSearchParams(location.search).get('p') || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
   if (!slug) return fail('Cette page n’existe pas.');
 
