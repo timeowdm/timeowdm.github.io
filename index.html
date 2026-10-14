@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- Page publique d'un pilote NextLap : https://<site>/?p=<adresse-du-pilote>
+     Lit la table public_pages (seule table lisible sans compte, pages publiées
+     uniquement) et affiche ce que le pilote a choisi de montrer.
+     Fichier modèle : `node build.js` y place l'adresse et la clé publique du
+     projet (les mêmes que dans l'app) et écrit dist/index.html, à héberger. -->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pilote · NextLap</title>
+<meta name="robots" content="noindex">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0B0B0F;color:#fff;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px 60px}
+  header{position:relative;padding:54px 0 34px;overflow:hidden}
+  header::before{content:'';position:absolute;right:-180px;top:-220px;width:560px;height:560px;background:radial-gradient(circle,rgba(198,255,0,.2),transparent 62%)}
+  .num{position:absolute;right:0;top:20px;font-size:150px;font-weight:900;font-style:italic;color:rgba(255,255,255,.06);line-height:1}
+  .kick{color:#C6FF00;font-size:11px;font-weight:700;letter-spacing:3px}
+  h1{font-size:46px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:-1.5px;line-height:1;margin-top:10px;position:relative}
+  .id{color:#A3A3AD;margin-top:8px;font-size:16px}
+  .goal{display:inline-block;margin-top:16px;background:#C6FF00;color:#0B0B0F;font-weight:800;font-size:13px;padding:7px 14px;transform:skewX(-10deg)}
+  .stats{display:flex;flex-wrap:wrap;gap:30px;margin-top:28px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12)}
+  .stats b{display:block;font-size:28px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .stats span{font-size:10px;letter-spacing:1.6px;color:#A3A3AD}
+  section{padding:30px 0 0}
+  h2{font-size:17px;font-weight:900;font-style:italic;text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  h2::before{content:'';width:11px;height:11px;background:#C6FF00;transform:skewX(-24deg)}
+  p{color:#D6D6DC}
+  .facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:14px}
+  .facts span{display:block;font-size:10px;letter-spacing:1.4px;color:#8b8b95;text-transform:uppercase}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .card{background:#1C1C22;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px}
+  .card small{font-size:10px;letter-spacing:1.6px;color:#8b8b95;display:block;margin-bottom:4px}
+  .card.top{border-color:#C6FF00}
+  .card li{list-style:none;font-size:14px;color:#D6D6DC;margin-top:4px}
+  .card li::before{content:'✓ ';color:#2FD67B;font-weight:800}
+  .row{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:15px}
+  .row span{color:#8b8b95;min-width:92px}
+  .row b{flex:1;font-weight:600}
+  .row em{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:#1C1C22;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:9px 13px;font-size:14px;font-weight:600}
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);color:#77777f;font-size:12px;display:flex;justify-content:space-between}
+  footer b{color:#fff;font-style:italic;letter-spacing:1px}
+  .empty{padding:120px 0;text-align:center;color:#A3A3AD}
+  @media (max-width:520px){h1{font-size:36px}.num{font-size:110px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="empty">Chargement…</div></div>
+<script>
+(function () {
+  var URL_BASE = 'https://wooesoouihkvknpprndz.supabase.co';
+  var KEY = 'sb_publishable_gm-kEYDIjWrIbsykdBzPLQ_Xsjo-IUm';
+  var app = document.getElementById('app');
+  // Tout ce qui vient du pilote est écrit comme du texte, jamais comme du code.
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function section(title, body) { return body ? '<section><h2>' + title + '</h2>' + body + '</section>' : ''; }
+  function fail(text) { app.innerHTML = '<div class="empty">' + text + '</div>'; }
+
+  var slug = (new URLSearchParams(location.search).get('p') || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!slug) return fail('Cette page n’existe pas.');
+
+  fetch(URL_BASE + '/rest/v1/public_pages?select=data&published=eq.true&slug=eq.' + encodeURIComponent(slug), { headers: { apikey: KEY, Authorization: 'Bearer ' + KEY } })
+    .then(function (r) { return r.json(); })
+    .then(function (rows) {
+      var d = rows && rows[0] && rows[0].data;
+      if (!d || !d.name) return fail('Cette page n’est pas en ligne.');
+      document.title = d.name + ' · NextLap';
+      var html = '<header>' + (d.number ? '<div class="num">' + esc(d.number) + '</div>' : '') +
+        '<div class="kick">PILOTE' + (d.season ? ' · SAISON ' + esc(d.season) : '') + '</div>' +
+        '<h1>' + esc(d.name) + '</h1>' + (d.identity ? '<div class="id">' + esc(d.identity) + '</div>' : '') +
+        (d.goal ? '<div class="goal">Objectif : ' + esc(d.goal) + '</div>' : '') +
+        ((d.highlights || []).length ? '<div class="stats">' + d.highlights.map(function (h) { return '<div><b>' + esc(h.value) + '</b><span>' + esc(h.label) + '</span></div>'; }).join('') + '</div>' : '') + '</header>';
+
+      html += section('Le pilote', (d.pitch ? '<p>' + esc(d.pitch) + '</p>' : '') + (d.bio ? '<p style="margin-top:8px">' + esc(d.bio) + '</p>' : '') +
+        ((d.facts || []).length ? '<div class="facts">' + d.facts.map(function (f) { return '<div><span>' + esc(f.label) + '</span><b>' + esc(f.value) + '</b></div>'; }).join('') + '</div>' : ''));
+      html += section('Ambitions', (d.ambitions || []).length ? '<div class="cards">' + d.ambitions.map(function (a) { return '<div class="card"><small>' + esc(a.label).toUpperCase() + '</small><b>' + esc(a.value) + '</b></div>'; }).join('') + '</div>' : '');
+      html += section('Parcours', (d.journey || []).map(function (j) { return '<div class="row"><span>' + esc(j.saison) + '</span><b>' + esc(j.titre) + (j.description ? '<br><small style="color:#8b8b95;font-weight:400">' + esc(j.description) + '</small>' : '') + '</b></div>'; }).join(''));
+      if (d.results) html += section('Résultats', ((d.results.stats || []).length ? '<div class="stats" style="border:0;margin:0 0 10px;padding:0">' + d.results.stats.map(function (s) { return '<div><b>' + esc(s.value) + '</b><span>' + esc(s.label) + '</span></div>'; }).join('') + '</div>' : '') +
+        (d.results.rows || []).map(function (r) { return '<div class="row"><span>' + esc(r.date) + '</span><b>' + esc(r.circuit) + '</b><em>' + esc(r.result) + '</em></div>'; }).join(''));
+      html += section('Records', (d.records || []).map(function (r) { return '<div class="row"><b>' + esc(r.circuit) + '</b><em>' + esc(r.chrono) + '</em></div>'; }).join(''));
+      if (d.community && d.community.total > 0) html += section('Communauté', '<p><b style="font-size:26px;color:#fff">' + Number(d.community.total).toLocaleString('fr-FR') + '</b> abonnés</p>' +
+        (d.community.networks || []).filter(function (n) { return n.count > 0; }).map(function (n) { return '<div class="row"><b>' + esc(n.label) + (n.handle ? ' <small style="color:#8b8b95;font-weight:400">@' + esc(String(n.handle).replace(/^@/, '')) + '</small>' : '') + '</b><em>' + Number(n.count).toLocaleString('fr-FR') + '</em></div>'; }).join(''));
+      html += section('Prochaines courses', (d.calendar || []).map(function (c) { return '<div class="row"><span>' + esc(c.date) + '</span><b>' + esc(c.titre) + (c.circuit ? ' · ' + esc(c.circuit) : '') + '</b></div>'; }).join(''));
+      html += section('Ils me soutiennent', (d.partners || []).length ? '<div class="chips">' + d.partners.map(function (p) { return '<div class="chip">' + esc(p.nom) + '</div>'; }).join('') + '</div>' : '');
+      html += section('Devenir partenaire', (d.tiers || []).length ? '<div class="cards">' + d.tiers.map(function (t, i) { return '<div class="card' + (i === d.tiers.length - 1 ? ' top' : '') + '"><small>' + esc(t.name).toUpperCase() + '</small>' + (t.perks || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</div>'; }).join('') + '</div>' : '');
+      html += section('Contact', (d.contact || []).map(function (c) { return '<div class="row"><span>' + esc(c.label) + '</span><b>' + esc(c.value) + '</b></div>'; }).join(''));
+      html += '<footer><b>NEXTLAP</b><span>Page créée avec NextLap</span></footer>';
+      app.innerHTML = html;
+    })
+    .catch(function () { fail('La page n’a pas pu être chargée.'); });
+})();
+</script>
+</body>
+</html>
