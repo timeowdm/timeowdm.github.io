@@ -45,6 +45,14 @@
   footer{margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);color:#77777f;font-size:12px;display:flex;justify-content:space-between}
   footer b{color:#fff;font-style:italic;letter-spacing:1px}
   .empty{padding:120px 0;text-align:center;color:#A3A3AD}
+  .spot{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+  .spot b{flex:1;font-size:16px}
+  .spot em{font-style:normal;font-family:ui-monospace,Menlo,Consolas,monospace;color:#fff}
+  .spot .ask{color:#8b8b95;font-size:13px}
+  .tag{font-size:11px;font-weight:700;letter-spacing:1px;padding:4px 9px;border-radius:6px;border:1px solid #2FD67B;color:#2FD67B}
+  .tag.off{border-color:rgba(255,255,255,.15);color:#77777f}
+  .cta{display:inline-block;background:#C6FF00;color:#0B0B0F;font-weight:800;font-size:13px;padding:8px 14px;border-radius:8px;text-decoration:none;white-space:nowrap}
+  @media (max-width:520px){.spot{flex-wrap:wrap}.spot b{min-width:60%}}
   @media (max-width:520px){h1{font-size:36px}.num{font-size:110px}}
 </style>
 </head>
@@ -106,6 +114,17 @@
       html += section('Prochaines courses', (d.calendar || []).map(function (c) { return '<div class="row"><span>' + esc(c.date) + '</span><b>' + esc(c.titre) + (c.circuit ? ' · ' + esc(c.circuit) : '') + '</b></div>'; }).join(''));
       html += section('Ils me soutiennent', (d.partners || []).length ? '<div class="chips">' + d.partners.map(function (p) { return '<div class="chip">' + esc(p.nom) + '</div>'; }).join('') + '</div>' : '');
       html += section('Devenir partenaire', (d.tiers || []).length ? '<div class="cards">' + d.tiers.map(function (t, i) { return '<div class="card' + (i === d.tiers.length - 1 ? ' top' : '') + '"><small>' + esc(t.name).toUpperCase() + '</small>' + (t.perks || []).map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</div>'; }).join('') + '</div>' : '');
+      // Emplacements à vendre (16 novembre 2026) : libres en premier, bouton e-mail si le pilote affiche ses coordonnées.
+      var spots = (d.spots || []).slice().sort(function (a, b) { return (b.libre ? 1 : 0) - (a.libre ? 1 : 0); });
+      html += section('Emplacements sponsors', spots.map(function (s) {
+        var price = s.libre ? (s.prix ? '<em>' + Number(s.prix).toLocaleString('fr-FR') + ' € / saison</em>' : '<span class="ask">Prix sur demande</span>') : '';
+        var subject = ['Emplacement', s.zone, '–', d.name].join(' ');
+        var nl = String.fromCharCode(10);
+        var body = ['Bonjour ', d.name, ',', nl, nl, 'L’emplacement « ', s.zone, ' » nous intéresse pour la saison', d.season ? ' ' + String(d.season) : '', '.', nl, nl].join('');
+        var href = 'mailto:' + encodeURIComponent(d.email).replace(/%40/g, '@') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        var mail = s.libre && d.email ? '<a class="cta" href="' + esc(href) + '">Je suis intéressé</a>' : '';
+        return '<div class="spot"><b>' + esc(s.zone) + '</b>' + price + '<span class="tag' + (s.libre ? '' : ' off') + '">' + (s.libre ? 'LIBRE' : 'PRIS') + '</span>' + mail + '</div>';
+      }).join(''));
       html += section('Contact', (d.contact || []).map(function (c) { return '<div class="row"><span>' + esc(c.label) + '</span><b>' + esc(c.value) + '</b></div>'; }).join(''));
       html += '<footer><b>NEXTLAP</b><span>Page créée avec NextLap</span></footer>';
       app.innerHTML = html;
