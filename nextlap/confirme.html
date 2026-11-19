@@ -56,12 +56,15 @@
   var err = h.get('error') || q.get('error');
   if (err) {
     var code = h.get('error_code') || q.get('error_code') || '';
-    document.getElementById('card').classList.add('error');
-    document.getElementById('kicker').textContent = 'Lien plus valable';
-    document.getElementById('title').textContent = code === 'otp_expired' ? 'Lien expiré' : 'Confirmation impossible';
-    document.getElementById('text').textContent = 'Ce lien a déjà servi ou a expiré. Si ton compte est déjà confirmé, connecte-toi simplement dans l’app. Sinon, recrée ton compte pour recevoir un nouvel e-mail.';
+    // Cas le plus courant : le lien a déjà servi (2e appui, ou messagerie qui l'a ouvert avant) : le compte est confirmé.
+    document.getElementById('kicker').textContent = 'Lien déjà utilisé';
+    document.getElementById('title').textContent = code === 'otp_expired' ? 'Compte sans doute déjà confirmé' : 'Confirmation impossible';
+    document.getElementById('text').textContent = 'Ce lien ne sert qu’une fois. Ouvre NextLap et connecte-toi : si ça marche, tout est bon. Sinon, recrée ton compte pour recevoir un nouvel e-mail.';
+    if (code !== 'otp_expired') document.getElementById('card').classList.add('error');
     document.getElementById('steps').style.display = 'none';
   }
+  // On nettoie la barre d'adresse (codes techniques ajoutés par Supabase).
+  if (location.hash || location.search) history.replaceState(null, '', location.pathname);
 </script>
 </body>
 </html>
